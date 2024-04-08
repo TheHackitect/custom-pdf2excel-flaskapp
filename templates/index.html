@@ -11,7 +11,9 @@
             font-family: Arial, sans-serif;
             margin-bottom: 100px; /* Adjust for footer height */
         }
-
+        p {
+            line-height: 2px;
+        }
         .container {
             max-width: 800px;
             margin: 100px auto;
@@ -40,7 +42,7 @@
 
         .cli {
             background-color: #000000;
-            color: #28a745;
+            color: cyan;
             padding: 10px;
             margin-top: 20px;
             height: 200px;
@@ -65,17 +67,17 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4">PDF to Excel Converter</h1>
+        <h1 class="mb-4">Custom PDF to Excel Converter <br><br>[Custom files Only!]</h1>
         <div class="custom-file mb-3">
             <input type="file" class="custom-file-input" id="fileInput" name="file">
             <label class="custom-file-label" for="fileInput">Choose PDF file</label>
         </div>
         <button id="uploadBtn" class="btn btn-primary">Upload PDF</button>
         <div class="spinner-border text-primary" role="status" id="spinner">
-            <span class="sr-only">Processing...</span>
+            <span class="sr-only text-black">Processing...</span>
         </div>
         <div class="cli" id="logContent"></div>
-        <a href="#" id="downloadBtn" class="btn btn-success d-none">Download Excel</a>
+        <a href="" class="d-none btn btn-success" id="downloadBtn">Download Excel</a>
     </div>
 
     <div class="footer">
@@ -107,10 +109,11 @@
             socket.on('disconnect', function() {
                 logContent.append('<p>Disconnected from server</p>');
             });
-
-            socket.on('Download available', function() {
-                downloadBtn.removeClass('d-none');
+            socket.on('download_link', function(data) {
                 spinner.hide();
+                var downloadLink = data.download_link;
+                downloadBtn.attr('href', downloadLink);
+                downloadBtn.removeClass('d-none');
             });
 
             uploadBtn.on('click', function() {
@@ -137,11 +140,11 @@
                 });
             });
 
-            downloadBtn.on('click', function() {
-                window.location.href = '/download';
-                downloadBtn.addClass('d-none');
-                logContent.empty();
-            });
+            // downloadBtn.on('click', function() {
+            //     window.location.href = downloadBtn.href;
+            //     downloadBtn.addClass('d-none');
+            //     logContent.empty();
+            // });
         });
     </script>
 </body>
