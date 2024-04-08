@@ -137,23 +137,19 @@ def process_pdf(pdf_path):
   # Write DataFrame to Excel (ensure file is closed after writing)
   output_filename = 'output.xlsx'
   try:
-    with pd.ExcelWriter(output_filename) as writer:
-      df.to_excel(writer, index=False)
-      emit_log("Successfully Extracted Table!")
+    df.to_excel(output_filename, index=False)
+    emit_log("Successfully Extracted Table!")
+    socketio.emit('Download available')
   except Exception as e:
     emit_log("An error occurred while writing to Excel: {}".format(e))
   finally:
     socketio.emit('Download available')
- 
 
 
 @app.route('/download')
 def download_file():
     filename = 'output.xlsx'
-    try:
-        return send_file(filename, as_attachment=True)
-    finally:
-        os.remove(filename)
+    return send_file(filename, as_attachment=True)
 
 if __name__ == '__main__':
     socketio.run(app, port=8080, host="0.0.0.0", debug=True)
