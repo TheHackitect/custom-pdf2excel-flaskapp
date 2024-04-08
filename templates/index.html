@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Excel Converter</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .cli {
+            background-color: black;
+            color: limegreen;
+            padding: 10px;
+            margin-top: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+
+        .spinner-border {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">PDF to Excel Converter</h1>
+        <div class="custom-file mb-3">
+            <input type="file" class="custom-file-input" id="fileInput" name="file">
+            <label class="custom-file-label" for="fileInput">Choose PDF file</label>
+        </div>
+        <button id="uploadBtn" class="btn btn-primary">Upload PDF</button>
+        <div class="spinner-border text-primary" role="status" id="spinner">
+            <span class="sr-only">Processing...</span>
+        </div>
+        <div class="cli" id="logContent"></div>
+        <a href="#" id="downloadBtn" class="btn btn-success d-none">Download Excel</a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        $(document).ready(function(){
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+            var logContent = $('#logContent');
+            var downloadBtn = $('#downloadBtn');
+            var uploadBtn = $('#uploadBtn');
+            var fileInput = $('#fileInput');
+            var spinner = $('#spinner');
+
+            socket.on('connect', function() {
+                logContent.empty();
+                logContent.append('<p>Connected to server</p>');
+            });
+
+            socket.on('log', function(data) {
+                logContent.append('<p>' + data.data + '</p>');
+            });
+
+            socket.on('disconnect', function() {
+                logContent.append('<p>Disconnected from server</p>');
+            });
+
+            socket.on('Download available', function() {
+                downloadBtn.removeClass('d-none');
+                spinner.hide();
+            });
+
+            uploadBtn.on('click', function() {
+                var file = fileInput[0].files[0];
+                if (!file) {
+                    alert("Please select a file.");
+                    return;
+                }
+                var formData = new FormData();
+                formData.append('file', file);
+                spinner.show(); // Show spinner
+                $.ajax({
+                    url: '/upload',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        console.log(response);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(xhr.responseText);
+                    }
+                });
+            });
+
+            downloadBtn.on('click', function() {
+                window.location.href = '/download';
+                downloadBtn.addClass('d-none');
+                logContent.empty();
+            });
+        });
+    </script>
+</body>
+</html>
