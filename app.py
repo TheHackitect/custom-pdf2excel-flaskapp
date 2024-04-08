@@ -88,60 +88,64 @@ def upload_file():
         return 'File uploaded successfully and processed'
 
 def process_pdf(pdf_path):
-    # Open the PDF
-    with fitz.open(pdf_path) as doc:
-        # Extract text from all pages
-        all_text = [page.get_text() for page in doc]
+  emit_log("Now Processing..... [ Please wait ]")
+  # Open the PDF
+  with fitz.open(pdf_path) as doc:
+    # Extract text from all pages
+    all_text = [page.get_text() for page in doc]
+    emit_log("Extracted Text Content.......")
 
-    # Initialize an empty list to store rows
-    rows = []
+  # Initialize an empty list to store rows
+  rows = []
 
-    # Iterate over each page
-    for page_num, page_text in enumerate(all_text):
-        # Extract date, run number, and mileage from page text
-        date, run_number = extract_date_and_run(page_text)
-        mileage = extract_mileage(page_text)
+  # Iterate over each page
+  for page_num, page_text in enumerate(all_text):
+    # Extract date, run number, and mileage from page text
+    date, run_number = extract_date_and_run(page_text)
+    mileage = extract_mileage(page_text)
 
-        # Extract tables from current page of PDF
-        tables = tabula.read_pdf(pdf_path, pages=page_num + 1, multiple_tables=True)
+    # Extract tables from current page of PDF
+    tables = tabula.read_pdf(pdf_path, pages=page_num + 1, multiple_tables=True)
 
-        # If there are no tables found
-        if not tables:
-            emit_log("Table not found on page {}".format(page_num + 1))
-            continue
+    # If there are no tables found
+    if not tables:
+      emit_log("Table not found on page {}".format(page_num + 1))
+      continue
+    else:
+       emit_log("Found Tables..... in PDF")
 
-        table = tables[0]
+    table = tables[0]
 
-        # Process each row of the table
-        for _, row in table.iterrows():
-            pick_up_time = row[0]
-            customer_info = row[5]  # Assuming the customer info is in the 5th column
-            address = row[3]
+    # Process each row of the table
+    for _, row in table.iterrows():
+      pick_up_time = row[0]
+      customer_info = row[5]  # Assuming the customer info is in the 5th column
+      address = row[3]
 
-            # Check if customer_info is a string
-            if isinstance(customer_info, str):
-                # Parse customer info to extract name, ID, address, and comments
-                customer_name, customer_id, comments = parse_customer_info(customer_info)
+      # Check if customer_info is a string
+      if isinstance(customer_info, str):
+        # Parse customer info to extract name, ID, address, and comments
+        customer_name, customer_id, comments = parse_customer_info(customer_info)
 
-                # Append data to rows list
-                rows.append([date, run_number, pick_up_time, customer_name, customer_id, address, comments, mileage])
+        # Append data to rows list
+        rows.append([date, run_number, pick_up_time, customer_name, customer_id, address, comments, mileage])
+        emit_log(f"User Data: {customer_name} | {customer_id}")
 
-    # Create DataFrame from rows
-    df = pd.DataFrame(rows, columns=['Date', 'Run_Number', 'Pick_Up_Time', 'Customer_Name', 'Customer_ID', 'Address', 'Comments', 'Mileage'])
+  # Create DataFrame from rows
+  df = pd.DataFrame(rows, columns=['Date', 'Run_Number', 'Pick_Up_Time', 'Customer_Name', 'Customer_ID', 'Address', 'Comments', 'Mileage'])
 
-    # Write DataFrame to Excel
-    output_filename = 'output.xlsx'
-    try:
-        with pd.ExcelWriter(output_filename) as writer:
-            df.to_excel(writer, index=False)
-        emit_log("Data extracted and saved to Excel successfully!")
-        emit_log("Download available")
-    except Exception as e:
-        emit_log("An error occurred while writing to Excel: {}".format(e))
-    finally:
-        # Close the writer to release the file handle
-        writer.close()
-        socketio.emit('Download available')
+  # Write DataFrame to Excel (ensure file is closed after writing)
+  output_filename = 'output.xlsx'
+  try:
+    with pd.ExcelWriter(output_filename) as writer:
+      df.to_excel(writer, index=False)
+      emit_log("Successfully Extracted Table!")
+  except Exception as e:
+    emit_log("An error occurred while writing to Excel: {}".format(e))
+  finally:
+    socketio.emit('Download available')
+ 
+
 
 @app.route('/download')
 def download_file():
